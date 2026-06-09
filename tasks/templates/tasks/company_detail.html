@@ -1,0 +1,192 @@
+{% extends 'tasks/base.html' %}
+
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-building"></i> {{ company.name }}</h2>
+            <a href="{% url 'company_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Назад
+            </a>
+        </div>
+        <p class="text-muted">{{ company.description|default:"Нет описания" }}</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body">
+                <h3>{{ employees.count }}</h3>
+                <p>Сотрудников</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body">
+                <h3>{{ tasks.count }}</h3>
+                <p>Всего задач</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body">
+                <h3>{{ tasks.completed.count }}</h3>
+                <p>Выполнено</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-users"></i> Сотрудники</h5>
+                {% if can_manage %}
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                    <i class="fas fa-plus"></i> Добавить
+                </button>
+                {% endif %}
+            </div>
+            <div class="list-group list-group-flush">
+                {% for emp in employees %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ emp.user.get_full_name|default:emp.user.username }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-tag"></i> {{ emp.get_role_display }}
+                                    <i class="fas fa-envelope ms-2"></i> {{ emp.user.email }}
+                                </small>
+                            </div>
+                            {% if is_owner and emp.role != 'owner' %}
+                            <a href="{% url 'company_remove_employee' company.id emp.user.id %}"
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Удалить сотрудника?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-tasks"></i> Задачи компании</h5>
+                {% if can_manage %}
+                <a href="{% url 'company_task_create' company.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i> Создать задачу
+                </a>
+                {% endif %}
+            </div>
+            <div class="list-group list-group-flush">
+                {% for task in tasks %}
+                    <div class="list-group-item {% if task.status == 'completed' %}bg-light{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="{% if task.status == 'completed' %}text-decoration-line-through{% endif %}">
+                                        {{ task.title }}
+                                        {% if task.is_overdue and task.status != 'completed' %}
+                                            <span class="badge bg-danger ms-2">Просрочена!</span>
+                                        {% endif %}
+                                    </strong>
+                                    <div>
+                                        <span class="badge
+                                            {% if task.priority == 'urgent' %}bg-danger
+                                            {% elif task.priority == 'high' %}bg-warning text-dark
+                                            {% elif task.priority == 'medium' %}bg-info text-dark
+                                            {% else %}bg-success{% endif %}">
+                                            {{ task.get_priority_display }}
+                                        </span>
+                                        <span class="badge
+                                            {% if task.status == 'completed' %}bg-success
+                                            {% elif task.status == 'overdue' %}bg-danger
+                                            {% elif task.status == 'in_progress' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {% if task.description %}
+                                    <p class="text-muted small mb-2">{{ task.description|truncatewords:20 }}</p>
+                                {% endif %}
+
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-alt"></i> Создал: {{ task.created_by.username }}
+                                    {% if task.due_date %}
+                                        | <i class="far fa-clock"></i> Срок: {{ task.due_date|date:"d.m.Y H:i" }}
+                                        {% if task.is_overdue and task.status != 'completed' %}
+                                            <span class="text-danger">(Срок истек!)</span>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if task.completed_at %}
+                                        | <i class="fas fa-check-circle"></i> Выполнил: {{ task.completed_by.username }}
+                                    {% endif %}
+                                </small>
+                            </div>
+
+                            {% if can_manage and task.status != 'completed' and task.status != 'overdue' %}
+                            <div class="btn-group ms-2">
+                                <a href="{% url 'company_task_complete' task.id %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="{% url 'company_task_delete' task.id %}" class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Удалить задачу?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center text-muted">Нет задач</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'company_add_employee' company.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить сотрудника</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" name="username" class="form-control" required>
+                        <small class="text-muted">Пользователь должен быть зарегистрирован</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Роль</label>
+                        <select name="role" class="form-select">
+                            <option value="employee">Сотрудник</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

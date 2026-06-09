@@ -1,0 +1,165 @@
+{% extends 'tasks/base.html' %}
+
+{% block title %}Мои задачи{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="stats-card">
+            <h3>{{ total_tasks|default:"0" }}</h3>
+            <p>Всего задач</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>{{ pending_tasks|default:"0" }}</h3>
+            <p>В ожидании</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3>{{ in_progress_tasks|default:"0" }}</h3>
+            <p>В процессе</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <h3>{{ completed_tasks|default:"0" }}</h3>
+            <p>Выполнено</p>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control" placeholder="Поиск задач..." value="{{ search_query|default:'' }}">
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Ожидает</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>В процессе</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Выполнена</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="priority" class="form-select">
+                    <option value="">Все приоритеты</option>
+                    <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Срочный</option>
+                    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Высокий</option>
+                    <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Средний</option>
+                    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Низкий</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Применить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    {% for task in tasks %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <!-- Цвет фона карточки в зависимости от приоритета -->
+        <div class="card h-100 task-card
+            {% if task.priority == 'urgent' %}border-danger bg-danger bg-opacity-10
+            {% elif task.priority == 'high' %}border-warning bg-warning bg-opacity-10
+            {% elif task.priority == 'medium' %}border-info bg-info bg-opacity-10
+            {% else %}border-success bg-success bg-opacity-10{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0 {% if task.status == 'completed' %}text-decoration-line-through text-muted{% endif %}">
+                        {{ task.title }}
+                    </h5>
+                    <span class="badge
+                        {% if task.priority == 'urgent' %}bg-danger
+                        {% elif task.priority == 'high' %}bg-warning text-dark
+                        {% elif task.priority == 'medium' %}bg-info text-dark
+                        {% else %}bg-success{% endif %}">
+                        {{ task.get_priority_display }}
+                    </span>
+                </div>
+
+                {% if task.categories.all %}
+                <div class="mb-2">
+                    {% for category in task.categories.all %}
+                        <span class="badge bg-{{ category.color|default:'secondary' }} me-1">
+                            <i class="{{ category.icon|default:'fas fa-tag' }}"></i> {{ category.name }}
+                        </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="mb-2">
+                    <span class="badge bg-secondary"><i class="fas fa-tag"></i> Без категории</span>
+                </div>
+                {% endif %}
+
+                <p class="card-text text-muted small mb-2">
+                    <i class="far fa-calendar-alt"></i>
+                    {% if task.due_date %}Срок: {{ task.due_date|date:"d.m.Y H:i" }}{% else %}Без срока{% endif %}
+                </p>
+
+                {% if task.description %}
+                    <p class="card-text small">{{ task.description|truncatewords:20 }}</p>
+                {% endif %}
+
+                <div class="mt-2">
+                    <span class="badge
+                        {% if task.status == 'completed' %}bg-success
+                        {% elif task.status == 'in_progress' %}bg-warning text-dark
+                        {% else %}bg-secondary{% endif %}">
+                        {{ task.get_status_display }}
+                    </span>
+                    <small class="text-muted ms-2">Создана: {{ task.created_at|date:"d.m.Y" }}</small>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100">
+                    <a href="{% url 'task_toggle' task.id %}" class="btn btn-sm btn-outline-success">
+                        {% if task.status == 'completed' %}<i class="fas fa-undo"></i> Вернуть{% else %}<i class="fas fa-check"></i> Выполнить{% endif %}
+                    </a>
+                    <a href="{% url 'task_edit' task.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                    <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle"></i> У вас пока нет задач.
+            <a href="{% url 'task_create' %}">Создайте первую задачу!</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if tasks.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if tasks.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ tasks.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Назад</a></li>
+        {% endif %}
+        {% for num in tasks.paginator.page_range %}
+            <li class="page-item {% if tasks.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a></li>
+        {% endfor %}
+        {% if tasks.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ tasks.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Вперед</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

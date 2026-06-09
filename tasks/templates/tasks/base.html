@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}To-Do List{% endblock %}</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .content {
+            flex: 1;
+        }
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: transform 0.2s;
+        }
+        .stats-card:hover {
+            transform: scale(1.05);
+        }
+        .task-card {
+            transition: transform 0.2s;
+        }
+        .task-card:hover {
+            transform: translateY(-5px);
+        }
+        .footer {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 40px 0 20px 0;
+            margin-top: 50px;
+        }
+        .footer a {
+            color: #4facfe;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer a:hover {
+            color: #00f2fe;
+            text-decoration: underline;
+        }
+        .footer .social-icons a {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .footer .social-icons a:hover {
+            background: #4facfe;
+            transform: translateY(-3px);
+        }
+        .footer .copyright {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .dropdown-menu {
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .dropdown-item i {
+            width: 20px;
+            margin-right: 8px;
+        }
+        /* Стиль для кнопок админа */
+        .admin-nav-item .nav-link {
+            color: #ffc107 !important;
+            border-left: 2px solid #ffc107;
+            margin-left: 5px;
+        }
+        .admin-nav-item .nav-link:hover {
+            color: #fff !important;
+            background-color: rgba(255,193,7,0.2);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- НАВИГАЦИЯ (ШАПКА) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'task_list' %}">
+                <i class="fas fa-tasks"></i> To-Do List
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <!-- Ссылка на список задач -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'task_list' %}">
+                                <i class="fas fa-list"></i> Мои задачи
+                            </a>
+                        </li>
+
+                        <!-- Ссылка на создание задачи -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'task_create' %}">
+                                <i class="fas fa-plus"></i> Новая задача
+                            </a>
+                        </li>
+
+                        <!-- Ссылка на дашборд -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'dashboard' %}">
+                                <i class="fas fa-chart-line"></i> Дашборд
+                            </a>
+                        </li>
+
+                        <!-- Ссылка на компании -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'company_list' %}">
+                                <i class="fas fa-building"></i> Компании
+                            </a>
+                        </li>
+
+                        <!-- АДМИН-ПАНЕЛЬ (только для staff/суперпользователей) -->
+                        {% if user.is_staff or user.is_superuser %}
+                        <li class="nav-item admin-nav-item">
+                            <a class="nav-link" href="/admin/" target="_blank">
+                                <i class="fas fa-user-shield"></i> Админ-панель
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <!-- ЗАЯВКИ НА ПАРОЛЬ (только для staff/суперпользователей) -->
+                        {% if user.is_staff or user.is_superuser %}
+                        <li class="nav-item admin-nav-item">
+                            <a class="nav-link" href="{% url 'admin_password_requests' %}">
+                                <i class="fas fa-key"></i> Заявки на пароль
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <!-- Выпадающее меню пользователя -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'profile' %}">
+                                        <i class="fas fa-id-card"></i> Мой профиль
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'dashboard' %}">
+                                        <i class="fas fa-chart-line"></i> Статистика
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'logout' %}">
+                                        <i class="fas fa-sign-out-alt"></i> Выход
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <!-- Для неавторизованных пользователей -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Вход
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">
+                                <i class="fas fa-user-plus"></i> Регистрация
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <div class="content">
+        <div class="container mt-4">
+            <!-- Сообщения (уведомления) -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Блок для переопределения в дочерних шаблонах -->
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- ПОДВАЛ (FOOTER) -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5><i class="fas fa-tasks"></i> To-Do List</h5>
+                    <p class="text-muted small">
+                        Ваш личный планировщик задач. Организуйте свои дела,
+                        ставьте приоритеты и достигайте целей каждый день!
+                    </p>
+                </div>
+
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5><i class="fas fa-link"></i> Полезные ссылки</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'task_list' %}"><i class="fas fa-home"></i> Главная</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'task_create' %}"><i class="fas fa-plus"></i> Создать задачу</a></li>
+                            <li><a href="{% url 'profile' %}"><i class="fas fa-user"></i> Мой профиль</a></li>
+                            <li><a href="{% url 'dashboard' %}"><i class="fas fa-chart-line"></i> Дашборд</a></li>
+                            <li><a href="{% url 'company_list' %}"><i class="fas fa-building"></i> Компании</a></li>
+                            {% if user.is_staff or user.is_superuser %}
+                                <li><a href="/admin/"><i class="fas fa-user-shield"></i> Админ-панель</a></li>
+                                <li><a href="{% url 'admin_password_requests' %}"><i class="fas fa-key"></i> Заявки на пароль</a></li>
+                            {% endif %}
+                        {% else %}
+                            <li><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
+                            <li><a href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Регистрация</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div class="col-md-4">
+                    <h5><i class="fas fa-share-alt"></i> Социальные сети</h5>
+                    <div class="social-icons">
+                        <a href="#" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-telegram"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-twitter"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-vk"></i></a>
+                    </div>
+                    <p class="mt-3 small text-muted">
+                        <i class="fas fa-envelope"></i> support@todolist.ru
+                    </p>
+                </div>
+            </div>
+
+            <div class="copyright text-center">
+                <p class="mb-0 small">
+                    &copy; {% now "Y" %} To-Do List. Все права защищены.
+                    <br>
+                    <span class="text-muted">
+                        Сделано с <i class="fas fa-heart text-danger"></i> на Django
+                    </span>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

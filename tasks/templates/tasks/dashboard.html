@@ -1,0 +1,162 @@
+{% extends 'tasks/base.html' %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-line"></i> Дашборд</h2>
+        <p class="text-muted">Ваша статистика продуктивности</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body">
+                <h2>{{ total_tasks }}</h2>
+                <p>Всего задач</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body">
+                <h2>{{ status_stats.completed }}</h2>
+                <p>Выполнено</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark text-center">
+            <div class="card-body">
+                <h2>{{ status_stats.in_progress }}</h2>
+                <p>В процессе</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white text-center">
+            <div class="card-body">
+                <h2>{{ priority_stats.urgent }}</h2>
+                <p>Срочных задач</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Статусы задач</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Приоритеты</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5><i class="fas fa-list"></i> Последние задачи</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Категории</th>
+                    <th>Статус</th>
+                    <th>Приоритет</th>
+                    <th>Создана</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in recent_tasks %}
+                <tr>
+                    <td>
+                        <strong>{{ task.title }}</strong>
+                        {% if task.description %}
+                            <br><small class="text-muted">{{ task.description|truncatewords:10 }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.categories.all %}
+                            {% for category in task.categories.all %}
+                                <span class="badge bg-{{ category.color|default:'secondary' }} mb-1" style="font-size: 0.7rem;">
+                                    <i class="{{ category.icon|default:'fas fa-tag' }}"></i> {{ category.name }}
+                                </span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="badge bg-secondary" style="font-size: 0.7rem;">
+                                <i class="fas fa-tag"></i> Без категории
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if task.status == 'completed' %}bg-success
+                            {% elif task.status == 'in_progress' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if task.priority == 'urgent' %}bg-danger
+                            {% elif task.priority == 'high' %}bg-warning text-dark
+                            {% elif task.priority == 'medium' %}bg-info text-dark
+                            {% else %}bg-success{% endif %}">
+                            {{ task.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>{{ task.created_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Нет задач</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Ожидает', 'В процессе', 'Выполнено'],
+            datasets: [{
+                data: [{{ status_stats.pending }}, {{ status_stats.in_progress }}, {{ status_stats.completed }}],
+                backgroundColor: ['#6c757d', '#ffc107', '#198754']
+            }]
+        }
+    });
+
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Срочный', 'Высокий', 'Средний', 'Низкий'],
+            datasets: [{
+                label: 'Количество задач',
+                data: [{{ priority_stats.urgent }}, {{ priority_stats.high }}, {{ priority_stats.medium }}, {{ priority_stats.low }}],
+                backgroundColor: '#4e73df'
+            }]
+        }
+    });
+</script>
+{% endblock %}

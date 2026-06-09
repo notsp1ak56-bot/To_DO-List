@@ -1,0 +1,82 @@
+{% extends 'tasks/base.html' %}
+{% load static %}
+
+{% block title %}Редактировать профиль{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-edit"></i> Редактирование профиля</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="text-center mb-4">
+                        <div class="mb-2">
+                            <img src="{{ user.profile.get_avatar_url }}" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;">
+                        </div>
+                        <div class="mb-3">
+                            <label for="avatar" class="form-label">
+                                <i class="fas fa-camera"></i> Изменить аватар
+                            </label>
+                            <input type="file" name="avatar" id="avatar" class="form-control" accept="image/*">
+                            <small class="text-muted">Поддерживаются форматы: JPG, PNG, GIF. Максимум 5MB.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Имя пользователя (логин)</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                        <small class="text-muted">Имя пользователя нельзя изменить</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-user"></i> Имя</label>
+                            <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}" placeholder="Введите ваше имя">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-user"></i> Фамилия</label>
+                            <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}" placeholder="Введите вашу фамилию">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ user.email }}" placeholder="example@mail.com">
+                        <small class="text-muted">На этот email будут приходить уведомления</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-align-left"></i> О себе</label>
+                        <textarea name="bio" class="form-control" rows="4" placeholder="Расскажите немного о себе...">{{ user.profile.bio }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-phone"></i> Телефон</label>
+                            <input type="text" name="phone" class="form-control" value="{{ user.profile.phone }}" placeholder="+7 (999) 123-45-67">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-telegram"></i> Telegram</label>
+                            <input type="text" name="telegram" class="form-control" value="{{ user.profile.telegram }}" placeholder="@username">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'profile' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
